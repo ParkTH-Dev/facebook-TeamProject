@@ -11,7 +11,7 @@ const firebaseConfig = {
   projectId: "facebook-ez-ba531",
   storageBucket: "facebook-ez-ba531.appspot.com",
   messagingSenderId: "142488866969",
-  appId: "1:142488866969:web:7020e0185bbd17ec676808",
+  appId: "1:142488866969:web:7020e0185bbd17ec676808"
 };
 
 // Initialize Firebase

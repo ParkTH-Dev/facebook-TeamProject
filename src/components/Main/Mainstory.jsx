@@ -104,6 +104,7 @@ const StoryFriend = styled.div`
     height: 100%;
     object-fit: cover;
     object-position: center;
+    loading: "lazy";
   }
   .storyvideo {
     video {
@@ -309,6 +310,17 @@ const StoryProfileImg = styled.div`
   }
 `;
 
+const cacheImages = (urls) => {
+  const cache = new Set();
+  urls.forEach((url) => {
+    if (!cache.has(url)) {
+      const img = new Image();
+      img.src = url;
+      cache.add(url);
+    }
+  });
+};
+
 const MainStory = () => {
   const [currentSlide, setCurrentSlide] = useState(0); // 현재 슬라이드 상태
   const [isModalOpen, setIsModalOpen] = useState(false); // 모달 열림 상태 관리
@@ -404,6 +416,86 @@ const MainStory = () => {
     ],
   };
 
+  // 이미지 프리로딩을 위한 상태 추가
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+
+  useEffect(() => {
+    if (storys.length > 0) {
+      // 모든 이미지를 프리로드
+      const loadImages = async () => {
+        const imagePromises = storys
+          .filter((story) => story.imageUrl)
+          .map((story) => {
+            return new Promise((resolve, reject) => {
+              const img = new Image();
+              img.src = story.imageUrl;
+              img.onload = resolve;
+              img.onerror = reject;
+            });
+          });
+
+        try {
+          await Promise.all(imagePromises);
+          setImagesLoaded(true);
+        } catch (error) {
+          console.error("이미지 로딩 실패:", error);
+        }
+      };
+
+      loadImages();
+    }
+  }, [storys]);
+
+  useEffect(() => {
+    const imageUrls = storys
+      .filter((story) => story.imageUrl)
+      .map((story) => story.imageUrl);
+    cacheImages(imageUrls);
+  }, [storys]);
+
+  // 스토리 렌더링 부분 수정
+  const renderStory = (story) => (
+    <StoryFriend key={story.id}>
+      {story.imageUrl && (
+        <img
+          src={story.imageUrl}
+          alt="스토리 이미지"
+          loading="lazy"
+          decoding="async"
+        />
+      )}
+      {story.videoUrl && (
+        <div className="storyvideo">
+          <video autoPlay muted loop>
+            <source src={story.videoUrl} type="video/mp4" />
+            지원되지 않는 비디오 형식입니다.
+          </video>
+        </div>
+      )}
+      <div className="storyInfo">
+        <div className="story">
+          <div className="storyProfile">
+            <img
+              className="profileImg"
+              src={story.profileImg || defaultProfile}
+              alt="Profile"
+            />
+          </div>
+        </div>
+        <div className="storyName">
+          {story.name ? (
+            <>
+              {story?.name?.firstName}
+              {story?.name?.lastName}
+            </>
+          ) : (
+            ""
+          )}
+        </div>
+      </div>
+    </StoryFriend>
+  );
+
   return (
     <Wrapper>
       <Inner>
@@ -426,42 +518,7 @@ const MainStory = () => {
                 />
               </StoryProfileImg>
             </StoryItem>
-            {displayedStorys.map((story) => (
-              <StoryFriend key={story.id}>
-                {story.imageUrl && (
-                  <img src={story.imageUrl} alt="스토리 이미지" />
-                )}
-                {story.videoUrl && (
-                  <div className="storyvideo">
-                    <video autoPlay muted loop>
-                      <source src={story.videoUrl} type="video/mp4" />
-                      지원되지 않는 비디오 형식입니다.
-                    </video>
-                  </div>
-                )}
-                <div className="storyInfo">
-                  <div className="story">
-                    <div className="storyProfile">
-                      <img
-                        className="profileImg"
-                        src={story.profileImg || defaultProfile}
-                        alt="Profile"
-                      />
-                    </div>
-                  </div>
-                  <div className="storyName">
-                    {story.name ? (
-                      <>
-                        {story?.name?.firstName}
-                        {story?.name?.lastName}
-                      </>
-                    ) : (
-                      ""
-                    )}
-                  </div>
-                </div>
-              </StoryFriend>
-            ))}
+            {displayedStorys.map(renderStory)}
           </Slider>
         </Items>
       </Inner>
